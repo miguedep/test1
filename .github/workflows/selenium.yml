@@ -20,11 +20,10 @@ jobs:
 
           # Save sources.list to /etc/apt/
           docker run -d --name temp_container selenium/node-chrome:latest tail -f /dev/null
-          docker cp temp_container:/etc/apt/sources.list /tmp/sources.list
-          docker cp /tmp/sources.list temp_container:/etc/apt/sources.list
+          docker cp sources.list temp_container:/etc/apt/sources.list
 
           # Save miguelCA.crt to /usr/local/share/ca-certificates/
-          docker cp /path/to/miguelCA.crt temp_container:/usr/local/share/ca-certificates/miguelCA.crt
+          docker cp miguelCA.crt temp_container:/usr/local/share/ca-certificates/miguelCA.crt
 
           # Run commands in the container
           docker exec temp_container bash -c "sudo update-ca-certificates && sudo apt-get update && sudo apt-get install -y libnss3-tools && sudo certutil -d sql:$HOME/.pki/nssdb -A -t 'TC,c,' -n miguelCA -i /usr/local/share/ca-certificates/miguelCA.crt"
