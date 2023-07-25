@@ -1,0 +1,51 @@
+name: Modify and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main  # Adjust the branch name if needed
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Modify Docker Image
+        run: |
+          # Download and modify the Docker image
+          docker pull selenium/node-chrome:latest
+
+          # Save sources.list to /etc/apt/
+          docker run -d --name temp_container selenium/node-chrome:latest tail -f /dev/null
+          docker cp temp_container:/etc/apt/sources.list /tmp/sources.list
+          docker cp /tmp/sources.list temp_container:/etc/apt/sources.list
+
+          # Save miguelCA.crt to /usr/local/share/ca-certificates/
+          docker cp /path/to/miguelCA.crt temp_container:/usr/local/share/ca-certificates/miguelCA.crt
+
+          # Run commands in the container
+          docker exec temp_container bash -c "sudo update-ca-certificates && sudo apt-get update && sudo apt-get install -y libnss3-tools && sudo certutil -d sql:$HOME/.pki/nssdb -A -t 'TC,c,' -n miguelCA -i /usr/local/share/ca-certificates/miguelCA.crt"
+
+          # Commit changes to a new image
+          docker commit temp_container modified_selenium/node-chrome
+          docker stop temp_container
+          docker rm temp_container
+
+        # Set environment variables for Docker Hub login
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push Docker Image
+        run: |
+          # Log in to Docker Hub
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+          # Tag the modified image with the desired repository name
+          docker tag modified_selenium/node-chrome:latest miguedep/node-chrome:latest
+
+          # Push the image to Docker Hub
+          docker push miguedep/node-chrome:latest
